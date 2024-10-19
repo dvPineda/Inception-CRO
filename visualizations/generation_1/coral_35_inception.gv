@@ -1,0 +1,28 @@
+// Inception Module - Coral 35
+digraph {
+	Input [label=Input]
+	Branch_0 [label="Branch 0"]
+	Input -> Branch_0
+	Branch_0_Layer_0 [label="Conv2d
+in_channels=32
+out_channels=23
+kernel_size=(1, 1)"]
+	Branch_0 -> Branch_0_Layer_0
+	Branch_1 [label="Branch 1"]
+	Input -> Branch_1
+	Branch_1_Layer_0 [label="Conv2d
+in_channels=32
+out_channels=62
+kernel_size=(1, 1)"]
+	Branch_1 -> Branch_1_Layer_0
+	Branch_1_Layer_1 [label="MaxPool2d
+kernel_size=3"]
+	Branch_1_Layer_0 -> Branch_1_Layer_1
+	Branch_2 [label="Branch 2"]
+	Input -> Branch_2
+	Branch_2_Layer_0 [label="Conv2d
+in_channels=32
+out_channels=31
+kernel_size=(3, 3)"]
+	Branch_2 -> Branch_2_Layer_0
+}
