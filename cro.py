@@ -78,12 +78,20 @@ class CoralReefOptimization:
         return reef
 
     def random_solution(self):
-        # Generar parámetros aleatorios para el módulo Inception dinámico
+        # Generar parámetros aleatorios para el módulo Inception dinámico con tamaños de filtro no cuadrados
         num_branches = random.randint(2, 4)
         branches_params = []
+        possible_heights = [1, 3, 5, 7, 9]
+        possible_widths = [1, 3, 5, 7, 9]
         for _ in range(num_branches):
             depth = random.randint(1, 4)
-            filter_sizes = [random.choice([1, 3, 5, 7, 9]) for _ in range(depth)]
+            filter_sizes = [
+                (
+                    random.choice(possible_heights),
+                    random.choice(possible_widths)
+                )
+                for _ in range(depth)
+            ]
             filter_channels = [random.randint(4, 64) for _ in range(depth)]
             use_pooling = random.random() < 0.5
             branch_param = {
@@ -208,13 +216,19 @@ class CoralReefOptimization:
     def mutate(self, solution):
         new_solution = copy.deepcopy(solution)
         # Mutar los parámetros de las ramas
+        possible_heights = [1, 3, 5, 7, 9]
+        possible_widths = [1, 3, 5, 7, 9]
         for branch_param in new_solution['branches_params']:
             if random.random() < self.mutation_rate:
                 # Mutar profundidad
                 branch_param['depth'] = random.randint(1, 4)
                 # Mutar tamaños de filtro y canales
                 branch_param['filter_sizes'] = [
-                    random.choice([1, 3, 5, 7, 9]) for _ in range(branch_param['depth'])
+                    (
+                        random.choice(possible_heights),
+                        random.choice(possible_widths)
+                    )
+                    for _ in range(branch_param['depth'])
                 ]
                 branch_param['filter_channels'] = [
                     random.randint(4, 64) for _ in range(branch_param['depth'])
@@ -224,13 +238,22 @@ class CoralReefOptimization:
                 # Posiblemente mutar parámetros individuales
                 for idx in range(branch_param['depth']):
                     if random.random() < self.mutation_rate:
-                        branch_param['filter_sizes'][idx] = random.choice([1, 3, 5, 7, 9])
+                        branch_param['filter_sizes'][idx] = (
+                            random.choice(possible_heights),
+                            random.choice(possible_widths)
+                        )
                         branch_param['filter_channels'][idx] = random.randint(4, 64)
         # Posiblemente agregar o eliminar una rama
         if random.random() < self.mutation_rate:
             # Agregar una nueva rama
             depth = random.randint(1, 4)
-            filter_sizes = [random.choice([1, 3, 5, 7, 9]) for _ in range(depth)]
+            filter_sizes = [
+                (
+                    random.choice(possible_heights),
+                    random.choice(possible_widths)
+                )
+                for _ in range(depth)
+            ]
             filter_channels = [random.randint(4, 64) for _ in range(depth)]
             use_pooling = random.random() < 0.5
             new_branch = {

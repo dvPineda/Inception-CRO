@@ -32,12 +32,14 @@ def visualize_inception_module(model, generation, idx, output_dir='visualization
         for layer_idx, layer in enumerate(branch):
             layer_name = f'{branch_name}_Layer_{layer_idx}'
             if isinstance(layer, nn.Conv2d):
-                label = f"Conv2d\nin_channels={layer.in_channels}\nout_channels={layer.out_channels}\nkernel_size={layer.kernel_size}"
+                kernel_size = layer.kernel_size
+                label = f"Conv2d\nin_channels={layer.in_channels}\nout_channels={layer.out_channels}\nkernel_size={kernel_size}"
                 dot.node(layer_name, label)
                 dot.edge(parent_name, layer_name)
                 parent_name = layer_name
             elif isinstance(layer, nn.MaxPool2d):
-                label = f"MaxPool2d\nkernel_size={layer.kernel_size}"
+                kernel_size = layer.kernel_size
+                label = f"MaxPool2d\nkernel_size={kernel_size}"
                 dot.node(layer_name, label)
                 dot.edge(parent_name, layer_name)
                 parent_name = layer_name

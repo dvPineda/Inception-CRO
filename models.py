@@ -5,7 +5,7 @@ import torch.nn.functional as F
 class InceptionModule(nn.Module):
     def __init__(self, in_channels, branches_params):
         """
-        Módulo Inception con ramas dinámicas.
+        Módulo Inception con ramas dinámicas y tamaños de filtro no cuadrados.
 
         Args:
             in_channels (int): Número de canales de entrada.
@@ -18,13 +18,16 @@ class InceptionModule(nn.Module):
             layers = []
             current_in_channels = in_channels
             depth = branch_param.get('depth', 1)
-            filter_sizes = branch_param.get('filter_sizes', [1] * depth)
+            filter_sizes = branch_param.get('filter_sizes', [(1, 1)] * depth)
             filter_channels = branch_param.get('filter_channels', [32] * depth)
             use_pooling = branch_param.get('use_pooling', False)
 
             for idx in range(depth):
                 kernel_size = filter_sizes[idx]
-                padding = kernel_size // 2
+                padding = (
+                    kernel_size[0] // 2,
+                    kernel_size[1] // 2
+                )
                 out_channels = filter_channels[idx]
                 layers.append(
                     nn.Conv2d(
@@ -39,7 +42,7 @@ class InceptionModule(nn.Module):
             if use_pooling:
                 layers.append(
                     nn.MaxPool2d(
-                        kernel_size=3,
+                        kernel_size=(3, 3),
                         stride=1,
                         padding=1
                     )

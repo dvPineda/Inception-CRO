@@ -140,7 +140,7 @@ if __name__ == '__main__':
         kappa=3,
         mutation_rate=0.2,
         fitness_function=fitness_function,
-        max_generations=100
+        max_generations=3
     )
 
     print(" ======================== ")
