@@ -1,0 +1,84 @@
+// Inception Module - Coral 71
+digraph {
+	Input [label=Input]
+	Branch_0 [label="Branch 0"]
+	Input -> Branch_0
+	Branch_0_Layer_0 [label="Conv2d
+in_channels=32
+out_channels=33
+kernel_size=(5, 5)"]
+	Branch_0 -> Branch_0_Layer_0
+	Branch_0_Layer_1 [label="Conv2d
+in_channels=33
+out_channels=14
+kernel_size=(3, 3)"]
+	Branch_0_Layer_0 -> Branch_0_Layer_1
+	Branch_0_Layer_2 [label="Conv2d
+in_channels=14
+out_channels=6
+kernel_size=(5, 5)"]
+	Branch_0_Layer_1 -> Branch_0_Layer_2
+	Branch_0_Layer_3 [label="Conv2d
+in_channels=6
+out_channels=35
+kernel_size=(7, 7)"]
+	Branch_0_Layer_2 -> Branch_0_Layer_3
+	Branch_0_Layer_4 [label="MaxPool2d
+kernel_size=3"]
+	Branch_0_Layer_3 -> Branch_0_Layer_4
+	Branch_1 [label="Branch 1"]
+	Input -> Branch_1
+	Branch_1_Layer_0 [label="Conv2d
+in_channels=32
+out_channels=17
+kernel_size=(1, 1)"]
+	Branch_1 -> Branch_1_Layer_0
+	Branch_1_Layer_1 [label="Conv2d
+in_channels=17
+out_channels=61
+kernel_size=(9, 9)"]
+	Branch_1_Layer_0 -> Branch_1_Layer_1
+	Branch_1_Layer_2 [label="Conv2d
+in_channels=61
+out_channels=42
+kernel_size=(1, 1)"]
+	Branch_1_Layer_1 -> Branch_1_Layer_2
+	Branch_1_Layer_3 [label="MaxPool2d
+kernel_size=3"]
+	Branch_1_Layer_2 -> Branch_1_Layer_3
+	Branch_2 [label="Branch 2"]
+	Input -> Branch_2
+	Branch_2_Layer_0 [label="Conv2d
+in_channels=32
+out_channels=50
+kernel_size=(9, 9)"]
+	Branch_2 -> Branch_2_Layer_0
+	Branch_2_Layer_1 [label="Conv2d
+in_channels=50
+out_channels=9
+kernel_size=(1, 1)"]
+	Branch_2_Layer_0 -> Branch_2_Layer_1
+	Branch_2_Layer_2 [label="Conv2d
+in_channels=9
+out_channels=41
+kernel_size=(9, 9)"]
+	Branch_2_Layer_1 -> Branch_2_Layer_2
+	Branch_2_Layer_3 [label="Conv2d
+in_channels=41
+out_channels=47
+kernel_size=(5, 5)"]
+	Branch_2_Layer_2 -> Branch_2_Layer_3
+	Branch_2_Layer_4 [label="MaxPool2d
+kernel_size=3"]
+	Branch_2_Layer_3 -> Branch_2_Layer_4
+	Branch_3 [label="Branch 3"]
+	Input -> Branch_3
+	Branch_3_Layer_0 [label="Conv2d
+in_channels=32
+out_channels=47
+kernel_size=(5, 5)"]
+	Branch_3 -> Branch_3_Layer_0
+	Branch_3_Layer_1 [label="MaxPool2d
+kernel_size=3"]
+	Branch_3_Layer_0 -> Branch_3_Layer_1
+}
