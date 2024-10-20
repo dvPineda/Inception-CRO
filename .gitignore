@@ -162,3 +162,6 @@ cython_debug/
 
 # Data from MNIST
 data/
+
+# Exclude code files (only for visualization branch)
+*.py
