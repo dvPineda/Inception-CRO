@@ -2,8 +2,8 @@ import numpy as np
 import random
 import copy
 import os
-from models import InceptionMNISTModel
-from visualization import visualize_inception_module
+from src.models import InceptionMNISTModel
+from src.visualization import visualize_inception_module
 
 class CoralReefOptimization:
     def __init__(
@@ -48,6 +48,7 @@ class CoralReefOptimization:
 
         self.reef = self.initialize_reef()
         self.best_coral = None
+        self.fitness_history = []  # Inicialización del historial de fitness
 
     def initialize_reef(self):
         reef = np.full((self.N, self.M), None)
@@ -275,11 +276,13 @@ class CoralReefOptimization:
         ]
         if not flat_reef:
             return
-        best_coral = max(flat_reef, key=lambda x: x['fitness'])
-        if self.best_coral is None or best_coral['fitness'] > self.best_coral['fitness']:
-            self.best_coral = best_coral
+        best_coral_current_generation = max(flat_reef, key=lambda x: x['fitness'])
+        if self.best_coral is None or best_coral_current_generation['fitness'] > self.best_coral['fitness']:
+            self.best_coral = copy.deepcopy(best_coral_current_generation)
             print(f"Nuevo mejor coral encontrado con fitness {self.best_coral['fitness']:.2f}")
             print(f"Parámetros del mejor coral: {self.best_coral['solution']}")
+        # Almacenar el mejor fitness de la generación actual
+        self.fitness_history.append(best_coral_current_generation['fitness'])
 
     def run(self):
         for generation in range(self.max_generations):
@@ -291,7 +294,7 @@ class CoralReefOptimization:
             self.larvae_settlement(new_larvae)
             # Depredación
             self.predation()
-            # Actualizar el mejor coral
+            # Actualizar el mejor coral y almacenar el fitness
             self.update_best_coral()
             # Visualizar los corales actuales
             flat_reef = [
@@ -311,5 +314,19 @@ class CoralReefOptimization:
                     )
                 except Exception as e:
                     print(f"Error al visualizar el modelo en la generación {self.generation}, coral {idx}: {e}")
+            # Visualizar el mejor coral en la subcarpeta "best_coral"
+            best_model_params = self.best_coral['solution']
+            best_model = InceptionMNISTModel(best_model_params)
+            try:
+                best_coral_dir = os.path.join(self.visualization_dir, 'best_coral')
+                os.makedirs(best_coral_dir, exist_ok=True)
+                visualize_inception_module(
+                    best_model,
+                    self.generation,
+                    'best_coral',
+                    best_coral_dir
+                )
+            except Exception as e:
+                print(f"Error al visualizar el mejor coral en la generación {self.generation}: {e}")
             print(f"Mejor fitness en generación {self.generation}: {self.best_coral['fitness']:.2f}")
         print("\nOptimización completada.")

@@ -132,15 +132,3 @@ class InceptionMNISTModel(nn.Module):
         x = self.fc1(x)
         x = self.fc2(x)
         return x
-
-    def forward_inception(self, x):
-        """
-        Método auxiliar para pasar la entrada directamente al módulo Inception.
-
-        Args:
-            x (torch.Tensor): Tensor de entrada.
-
-        Returns:
-            torch.Tensor: Salida del módulo Inception.
-        """
-        return self.inception(x)
