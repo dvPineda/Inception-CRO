@@ -4,7 +4,8 @@ from graphviz import Digraph
 
 def visualize_inception_module(model, generation, idx, output_dir='visualizations'):
     """
-    Visualiza y guarda la arquitectura del módulo Inception del modelo en formato de imagen.
+    Visualiza y guarda la arquitectura del módulo Inception del modelo en formato de imagen,
+    incluyendo un bloque final 'Output' que muestra cómo se concatenan las salidas de todas las ramas.
 
     Args:
         model (nn.Module): El modelo a visualizar.
@@ -28,6 +29,9 @@ def visualize_inception_module(model, generation, idx, output_dir='visualization
     # Agregar nodo de entrada
     dot.node('Input', 'Input')
 
+    # Lista para almacenar los nombres de los últimos nodos de cada rama
+    branch_output_names = []
+
     # Agregar las ramas del módulo Inception
     for branch_idx, branch in enumerate(model.inception.branches):
         branch_name = f'Branch_{branch_idx}'
@@ -49,6 +53,13 @@ def visualize_inception_module(model, generation, idx, output_dir='visualization
                 dot.edge(parent_name, layer_name)
                 parent_name = layer_name
             # Ignorar otras capas (e.g., ReLU)
+        # Al finalizar la rama, almacenar el nombre del último nodo
+        branch_output_names.append(parent_name)
+
+    # Agregar nodo de salida y conectar las ramas
+    dot.node('Output', 'Output (Concatenation)')
+    for output_name in branch_output_names:
+        dot.edge(output_name, 'Output')
 
     # Guardar el gráfico
     if idx == 'best_coral':
