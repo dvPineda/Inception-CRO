@@ -75,7 +75,7 @@ class InceptionMNISTModel(nn.Module):
         super(InceptionMNISTModel, self).__init__()
         # Raíz (Stem)
         self.conv1 = nn.Conv2d(
-            1,
+            1, # Ajustado para MNIST
             32,
             kernel_size=3,
             padding=1
@@ -101,8 +101,8 @@ class InceptionMNISTModel(nn.Module):
             128
         )
         self.fc2 = nn.Linear(
-            128,
-            10
+            128, 
+            10 # Número de clases en MNIST
         )
 
     def _get_output_channels(self, in_channels, branches_params):
