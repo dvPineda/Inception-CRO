@@ -66,7 +66,7 @@ def load_data(batch_size=128, validation_split=0.1, shuffle_dataset=True, random
     print("Dataset MNIST cargado correctamente.")
     return train_loader, val_loader, test_loader
 
-def evaluate_model(model, data_loader, device, alpha=0.0001):
+def evaluate_model(model, data_loader, device, alpha=0.1):
     """
     Evalúa el modelo en un conjunto de datos y devuelve la precisión y la pérdida promedio,
     incluyendo una penalización basada en el número de parámetros del modelo.
