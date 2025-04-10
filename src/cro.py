@@ -59,7 +59,8 @@ class CoralReefOptimization:
 
         self.reef = self.initialize_reef()
         self.best_coral = None
-        self.fitness_history = []  # Historial de fitness
+        self.fitness_history = []  # Historial del mejor fitness
+        self.avg_fitness_history = [] # Historial del fitness promedio
 
         self.larvae_pool = []  # Piscina de larvas que persiste entre generaciones
 
@@ -352,6 +353,7 @@ class CoralReefOptimization:
     def update_best_coral(self):
         """
         Actualiza el mejor coral encontrado y verifica si hubo mejora.
+        También almacena el fitness promedio de la generación.
 
         Returns:
             bool: True si se encontró un nuevo mejor coral, False en caso contrario.
@@ -361,7 +363,14 @@ class CoralReefOptimization:
         ]
         if not flat_reef:
             return False
+
+        # Calcular el fitness promedio de la generación
+        avg_fitness = np.mean([coral['fitness'] for coral in flat_reef])
+        self.avg_fitness_history.append(avg_fitness)
+
+        # Obtener el mejor coral de la generación actual
         best_coral_current_generation = max(flat_reef, key=lambda x: x['fitness'])
+
         if self.best_coral is None or best_coral_current_generation['fitness'] > self.best_coral['fitness']:
             self.best_coral = copy.deepcopy(best_coral_current_generation)
             print(f"Nuevo mejor coral encontrado con fitness {self.best_coral['fitness']:.2f}")
@@ -371,6 +380,7 @@ class CoralReefOptimization:
         else:
             self.fitness_history.append(self.best_coral['fitness'])
             return False
+
 
     def visualize_best_coral(self):
         """
