@@ -1,3 +1,5 @@
+# setup.py
+
 from setuptools import setup, find_packages
 
 setup(
@@ -10,7 +12,8 @@ setup(
         'numpy',
         'matplotlib',
         'graphviz',
+        'jupyter'
     ],
     author='David Pineda Peña',
-    description='Optimización de Módulos Inception Dinámicos mediante CRO',
+    description='Optimización de Módulos Inception Dinámicos mediante CRO'
 )

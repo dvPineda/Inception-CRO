@@ -1,42 +1,66 @@
+# src/cro.py
+
 import numpy as np
 import random
 import copy
 import os
+
 from src.models import InceptionMNISTModel
 from src.visualization import visualize_inception_module
 
 class CoralReefOptimization:
+    """
+    Implementation of the Coral Reef Optimization (CRO) metaheuristic,
+    adapted for evolving neural architectures.
+
+    The reef is a 2D grid (N x M). Each cell can hold a coral (model parameters + fitness) or be empty.
+    The main steps are:
+      1. Initialization: Random solutions in the reef.
+      2. BROADCAST SPAWNING + BROODING:
+         - Some corals reproduce sexually (broadcast spawning), generating new larvae.
+         - Others reproduce asexually (brooding), generating new larvae.
+         - Budding (a special kind of asexual reproduction) is optional for top corals.
+      3. LARVAE SETTLEMENT: New larvae try to settle in the reef, replacing weaker corals or occupying empty cells.
+      4. PREDATION: Some weaker corals are removed from the reef.
+      5. Check if a better solution is found, track best coral.
+
+    In this version, the "solution" is a dictionary describing an Inception module's branches.
+    The fitness_function is provided by the user (and typically calls a partial training + evaluate_model).
+    """
+
     def __init__(
-        self,   
+        self,
         reef_size,
         rho_0,
         Fb,
         Fa,
         Pa,
         Fd,
-        kappa,
         Pd,
+        kappa,
         mutation_rate,
         fitness_function,
         max_generations,
-        max_no_improve=None, # Nuevo parámetro para early stopping
+        max_no_improve=None,
+        visualization_dir=None
     ):
         """
-        Inicializa los parámetros del algoritmo CRO y configura el arrecife.
+        Initializes CRO parameters and sets up the reef.
 
         Args:
-            reef_size (tuple): Tamaño del arrecife (N, M).
-            rho_0 (float): Porcentaje inicial de ocupación del arrecife.
-            Fb (float): Fracción de corales para reproducción sexual.
-            Fa (float): Fracción de corales para reproducción asexual (budding).
-            Pa (float): Probabilidad de reproducción asexual.
-            Fd (float): Fracción de corales que serán depredados.
-            Pd (float): Probabilidad adicional para la depredación.
-            kappa (int): Número máximo de intentos de asentamiento de una larva.
-            mutation_rate (float): Tasa de mutación.
-            fitness_function (callable): Función para evaluar la aptitud de una solución.
-            max_generations (int): Número máximo de generaciones.
-            max_no_improve (int, optional): Número máximo de generaciones sin mejora para detener el algoritmo.
+            reef_size (tuple): (N, M) dimensions of the reef (e.g., (20, 10)).
+            rho_0 (float): Initial occupation ratio [0,1].
+            Fb (float): Fraction of corals for broadcast spawning.
+            Fa (float): Fraction of corals for asexual reproduction.
+            Pa (float): Probability that a coral effectively reproduces asexually.
+            Fd (float): Fraction for predation.
+            Pd (float): Probability threshold for predation.
+            kappa (int): Max attempts for a larva to settle.
+            mutation_rate (float): Probability of mutation in offspring.
+            fitness_function (callable): Function that takes a solution (dict) -> fitness float.
+            max_generations (int): Maximum number of CRO iterations (generations).
+            max_no_improve (int, optional): Early stopping if no improvement in best coral after these many gens.
+            visualization_dir (str, optional): Directory for saving coral visualizations (best coral, etc.).
         """
         self.N, self.M = reef_size
         self.rho_0 = rho_0
@@ -49,27 +73,30 @@ class CoralReefOptimization:
         self.mutation_rate = mutation_rate
         self.fitness_function = fitness_function
         self.max_generations = max_generations
-        self.max_no_improve = max_no_improve  # Parada anticipada
-        self.no_improve_counter = 0  # Contador de generaciones sin mejora
+        self.max_no_improve = max_no_improve  # Early stopping threshold
+        self.no_improve_counter = 0  # tracks consecutive gens without improvement
 
+        self.generation = 0  # current generation index
 
-        self.generation = 0  # Contador de generación
-        self.visualization_dir = 'visualizations'
+        if visualization_dir is None:
+            visualization_dir = "visualizations"  # default fallback
+        self.visualization_dir = visualization_dir
         os.makedirs(self.visualization_dir, exist_ok=True)
 
+        # Initialize reef (2D, can contain corals or None if empty)
         self.reef = self.initialize_reef()
         self.best_coral = None
-        self.fitness_history = []  # Historial del mejor fitness
-        self.avg_fitness_history = [] # Historial del fitness promedio
+        self.fitness_history = []     # best fitness per generation
+        self.avg_fitness_history = [] # average fitness per generation
 
-        self.larvae_pool = []  # Piscina de larvas que persiste entre generaciones
+        self.larvae_pool = []  # newly generated larvae waiting to settle
 
     def initialize_reef(self):
         """
-        Inicializa el arrecife con corales aleatorios según la ocupación inicial rho_0.
+        Randomly initializes the reef with corals according to rho_0 occupation ratio.
 
         Returns:
-            np.ndarray: Arrecife inicializado con corales.
+            np.ndarray: 2D array of shape (N, M) with coral dictionaries or None.
         """
         reef = np.full((self.N, self.M), None)
         num_initial_corals = int(self.rho_0 * self.N * self.M)
@@ -87,15 +114,16 @@ class CoralReefOptimization:
 
     def random_solution(self):
         """
-        Genera una solución aleatoria (arquitectura del módulo Inception).
+        Generates a random Inception-based solution (branch configurations).
 
         Returns:
-            dict: Parámetros de la solución generada.
+            dict: 'branches_params' describing filter sizes, channels, etc.
         """
         num_branches = random.randint(2, 4)
         branches_params = []
         possible_heights = [1, 3, 5, 7, 9]
         possible_widths = [1, 3, 5, 7, 9]
+
         for _ in range(num_branches):
             depth = random.randint(1, 4)
             filter_sizes = [
@@ -106,7 +134,8 @@ class CoralReefOptimization:
                 for _ in range(depth)
             ]
             filter_channels = [random.randint(4, 64) for _ in range(depth)]
-            use_pooling = random.random() < 0.5
+            use_pooling = (random.random() < 0.5)
+
             branch_param = {
                 'depth': depth,
                 'filter_sizes': filter_sizes,
@@ -114,44 +143,40 @@ class CoralReefOptimization:
                 'use_pooling': use_pooling
             }
             branches_params.append(branch_param)
-        params = {
-            'branches_params': branches_params
-        }
-        return params
+
+        return {'branches_params': branches_params}
 
     def broadcast_spawning(self, broadcast_corals):
         """
-        Implementa la reproducción sexual (broadcast spawning).
+        Sexual reproduction among broadcast corals (crossover).
+        Pairs of parents generate offspring larva.
 
         Args:
-            broadcast_corals (list): Lista de corales seleccionados para broadcast spawning.
+            broadcast_corals (list): list of coral dicts selected for sexual reproduction.
 
         Returns:
-            list: Lista de nuevas larvas generadas.
+            list: new larvae generated by crossover.
         """
         new_larvae = []
-
         num_parents = len(broadcast_corals)
         if num_parents < 2:
-            return new_larvae  # No hay suficientes corales para reproducirse
+            return new_larvae
 
-        # Asegurar que tenemos un número par de padres
+        # Ensure even number of parents
         if num_parents % 2 != 0:
-            # Eliminar aleatoriamente un coral para tener pares completos
             removed_coral = random.choice(broadcast_corals)
             broadcast_corals.remove(removed_coral)
             num_parents -= 1
 
-        # Mezclar aleatoriamente los corales seleccionados
+        # Shuffle
         random.shuffle(broadcast_corals)
 
-        # Emparejar los corales sin repetición
+        # Pair them
         for i in range(0, num_parents, 2):
             parent1 = broadcast_corals[i]['solution']
             parent2 = broadcast_corals[i + 1]['solution']
             new_solution = self.crossover(parent1, parent2)
             new_fitness = self.fitness_function(new_solution)
-            # Inicializar contador de intentos para la larva
             larva = {'solution': new_solution, 'fitness': new_fitness, 'attempts': self.kappa}
             new_larvae.append(larva)
 
@@ -159,78 +184,75 @@ class CoralReefOptimization:
 
     def brooding(self, brooding_corals):
         """
-        Implementa la reproducción asexual por brooding (mutación) sobre los corales no seleccionados en broadcast spawning.
+        Asexual reproduction via mutation for corals not selected in broadcast spawning.
 
         Args:
-            brooding_corals (list): Lista de corales para brooding.
+            brooding_corals (list): coral dicts for brooding.
 
         Returns:
-            list: Lista de nuevas larvas generadas.
+            list: new larvae generated by mutation.
         """
         new_larvae = []
         for coral in brooding_corals:
             new_solution = self.mutate(coral['solution'])
             new_fitness = self.fitness_function(new_solution)
-            # Inicializar contador de intentos para la larva
             larva = {'solution': new_solution, 'fitness': new_fitness, 'attempts': self.kappa}
             new_larvae.append(larva)
         return new_larvae
 
     def budding(self):
         """
-        Implementa la reproducción asexual por gemación (budding) para una fracción Fa de corales.
+        Special asexual reproduction for top corals. 
+        A fraction Fa of the best corals can replicate exactly (no changes).
 
         Returns:
-            list: Lista de nuevas larvas generadas.
+            list: new larvae identical to their parents.
         """
-        # Seleccionar corales para budding
-        corals = [coral for row in self.reef for coral in row if coral is not None]
+        corals = [c for row in self.reef for c in row if c is not None]
+        if len(corals) == 0:
+            return []
+
         num_budding = int(self.Fa * len(corals))
         if num_budding == 0:
             return []
 
-        # Si no se cumple la probabilidad Pa, no se generan nuevas larvas
-        if np.random.uniform(0, 1) > self.Pa:
+        # Probability Pa for budding to actually happen
+        if random.random() > self.Pa:
             return []
 
-        # Seleccionar los mejores corales para budding
+        # Select best corals
         sorted_corals = sorted(corals, key=lambda x: x['fitness'], reverse=True)
         selected_corals = sorted_corals[:num_budding]
 
         new_larvae = []
         for coral in selected_corals:
             new_solution = copy.deepcopy(coral['solution'])
-            # La aptitud de la nueva larva es la misma que la del padre
             larva = {'solution': new_solution, 'fitness': coral['fitness'], 'attempts': self.kappa}
             new_larvae.append(larva)
         return new_larvae
 
     def larvae_settlement(self):
         """
-        Gestiona el asentamiento de las larvas en el arrecife desde el larvae_pool.
+        Attempts to settle larvae from larvae_pool into the reef,
+        replacing weaker corals if needed.
         """
         new_pool = []
         for larva in self.larvae_pool:
-            settled = False
-            # Intento de asentamiento una vez por generación
             i, j = random.randint(0, self.N - 1), random.randint(0, self.M - 1)
+
             if self.reef[i, j] is None or larva['fitness'] > self.reef[i, j]['fitness']:
                 self.reef[i, j] = {'solution': larva['solution'], 'fitness': larva['fitness']}
-                settled = True
-                print(f"Larva con fitness {larva['fitness']:.2f} se asentó en posición ({i}, {j}).")
             else:
-                # Reducir contador de intentos
                 larva['attempts'] -= 1
                 if larva['attempts'] > 0:
                     new_pool.append(larva)
-                else:
-                    print(f"Larva con fitness {larva['fitness']:.2f} ha agotado sus intentos y será eliminada.")
-        # Actualizar larvae_pool con las larvas que aún tienen intentos restantes
+
         self.larvae_pool = new_pool
 
     def predation(self):
         """
-        Simula la depredación eliminando los corales menos aptos del arrecife con una probabilidad adicional.
+        Removes weaker corals (lowest fitness) with probability Fd,
+        applied to a fraction Pd of corals.
         """
         flat_reef = [
             ((i, j), self.reef[i, j])
@@ -238,72 +260,66 @@ class CoralReefOptimization:
             for j in range(self.M)
             if self.reef[i, j] is not None
         ]
+        if len(flat_reef) == 0:
+            return
+
         num_predated = int(self.Pd * len(flat_reef))
-        # Ordenar corales de peor a mejor (menor a mayor fitness)
-        sorted_corals = sorted(
-            flat_reef,
-            key=lambda x: x[1]['fitness']
-        )
+        if num_predated == 0:
+            return
+
+        # Sort from worst to best
+        sorted_corals = sorted(flat_reef, key=lambda x: x[1]['fitness'])
         for (i, j), coral in sorted_corals[:num_predated]:
             if random.random() < self.Fd:
-                print(f"Depredación: Coral con fitness {coral['fitness']:.2f} en posición ({i}, {j}) ha sido eliminado.")
                 self.reef[i, j] = None
 
     def crossover(self, parent1, parent2):
         """
-        Realiza el cruce entre dos soluciones (padres).
+        Sexual reproduction: merges branches from two solutions.
 
         Args:
-            parent1 (dict): Parámetros del primer padre.
-            parent2 (dict): Parámetros del segundo padre.
+            parent1 (dict): 'branches_params'
+            parent2 (dict): 'branches_params'
 
         Returns:
-            dict: Parámetros de la nueva solución generada.
+            dict: child's branches_params after merging.
         """
-        # Obtener el número de ramas de los padres
-        num_branches_parent1 = len(parent1['branches_params'])
-        num_branches_parent2 = len(parent2['branches_params'])
-        min_branches = min(num_branches_parent1, num_branches_parent2)
-        max_branches = max(num_branches_parent1, num_branches_parent2)
+        num_branches_1 = len(parent1['branches_params'])
+        num_branches_2 = len(parent2['branches_params'])
+        min_branches = min(num_branches_1, num_branches_2)
+        max_branches = max(num_branches_1, num_branches_2)
 
-        # Elegir aleatoriamente el número de ramas del hijo entre min y max
-        num_branches_child = random.randint(min_branches, max_branches)
-
-        # Generar las ramas del hijo tomando aleatoriamente de los padres
         child_branches = []
+        num_branches_child = random.randint(min_branches, max_branches)
         for _ in range(num_branches_child):
-            # Seleccionar aleatoriamente un padre
             if random.random() < 0.5:
-                selected_parent = parent1
+                selected_branches = parent1['branches_params']
             else:
-                selected_parent = parent2
-            # Seleccionar aleatoriamente una rama del padre seleccionado
-            selected_branches = selected_parent['branches_params']
+                selected_branches = parent2['branches_params']
             branch = copy.deepcopy(random.choice(selected_branches))
             child_branches.append(branch)
 
-        child = {'branches_params': child_branches}
-        return child
+        return {'branches_params': child_branches}
 
     def mutate(self, solution):
         """
-        Aplica mutaciones a una solución dada.
+        Mutation on a single solution: can alter depth, filter sizes, channels,
+        pooling usage, or add/remove branches with some probability.
 
         Args:
-            solution (dict): Parámetros de la solución a mutar.
+            solution (dict): 'branches_params' describing the model.
 
         Returns:
-            dict: Parámetros de la nueva solución mutada.
+            dict: mutated solution.
         """
         new_solution = copy.deepcopy(solution)
-        # Mutar los parámetros de las ramas
         possible_heights = [1, 3, 5, 7, 9]
         possible_widths = [1, 3, 5, 7, 9]
+
         for branch_param in new_solution['branches_params']:
             if random.random() < self.mutation_rate:
-                # Mutar profundidad
+                # Mutate entire branch
                 branch_param['depth'] = random.randint(1, 4)
-                # Mutar tamaños de filtro y canales
                 branch_param['filter_sizes'] = [
                     (
                         random.choice(possible_heights),
@@ -314,9 +330,9 @@ class CoralReefOptimization:
                 branch_param['filter_channels'] = [
                     random.randint(4, 64) for _ in range(branch_param['depth'])
                 ]
-                branch_param['use_pooling'] = random.random() < 0.5
+                branch_param['use_pooling'] = (random.random() < 0.5)
             else:
-                # Posiblemente mutar parámetros individuales
+                # Smaller chance to mutate individual elements
                 for idx in range(branch_param['depth']):
                     if random.random() < self.mutation_rate:
                         branch_param['filter_sizes'][idx] = (
@@ -324,73 +340,75 @@ class CoralReefOptimization:
                             random.choice(possible_widths)
                         )
                         branch_param['filter_channels'][idx] = random.randint(4, 64)
-        # Posiblemente agregar o eliminar una rama
+
+        # Possibly add a branch
         if random.random() < self.mutation_rate:
-            # Agregar una nueva rama
             depth = random.randint(1, 4)
-            filter_sizes = [
+            new_branch_fsizes = [
                 (
                     random.choice(possible_heights),
                     random.choice(possible_widths)
                 )
                 for _ in range(depth)
             ]
-            filter_channels = [random.randint(4, 64) for _ in range(depth)]
-            use_pooling = random.random() < 0.5
+            new_branch_channels = [random.randint(4, 64) for _ in range(depth)]
+            use_pooling = (random.random() < 0.5)
             new_branch = {
                 'depth': depth,
-                'filter_sizes': filter_sizes,
-                'filter_channels': filter_channels,
+                'filter_sizes': new_branch_fsizes,
+                'filter_channels': new_branch_channels,
                 'use_pooling': use_pooling
             }
             new_solution['branches_params'].append(new_branch)
+        # Possibly remove a branch
         elif len(new_solution['branches_params']) > 2 and random.random() < self.mutation_rate:
-            # Eliminar una rama
             idx = random.randint(0, len(new_solution['branches_params']) - 1)
             del new_solution['branches_params'][idx]
+
         return new_solution
 
     def update_best_coral(self):
         """
-        Actualiza el mejor coral encontrado y verifica si hubo mejora.
-        También almacena el fitness promedio de la generación.
+        Update self.best_coral if the current generation yields a better one.
+        Also track average fitness across reef for logging.
 
         Returns:
-            bool: True si se encontró un nuevo mejor coral, False en caso contrario.
+            bool: True if found a new best coral, False otherwise.
         """
-        flat_reef = [
-            coral for row in self.reef for coral in row if coral is not None
-        ]
+        flat_reef = [c for row in self.reef for c in row if c is not None]
         if not flat_reef:
             return False
 
-        # Calcular el fitness promedio de la generación
-        avg_fitness = np.mean([coral['fitness'] for coral in flat_reef])
+        avg_fitness = np.mean([c['fitness'] for c in flat_reef])
         self.avg_fitness_history.append(avg_fitness)
 
-        # Obtener el mejor coral de la generación actual
-        best_coral_current_generation = max(flat_reef, key=lambda x: x['fitness'])
-
-        if self.best_coral is None or best_coral_current_generation['fitness'] > self.best_coral['fitness']:
-            self.best_coral = copy.deepcopy(best_coral_current_generation)
-            print(f"Nuevo mejor coral encontrado con fitness {self.best_coral['fitness']:.2f}")
-            print(f"Parámetros del mejor coral: {self.best_coral['solution']}")
+        best_in_generation = max(flat_reef, key=lambda x: x['fitness'])
+        if self.best_coral is None or best_in_generation['fitness'] > self.best_coral['fitness']:
+            self.best_coral = copy.deepcopy(best_in_generation)
             self.fitness_history.append(self.best_coral['fitness'])
+            print(f"Nuevo mejor coral con fitness {self.best_coral['fitness']:.2f}")
+            print(f"Parámetros del mejor coral: {self.best_coral['solution']}")
             return True
         else:
             self.fitness_history.append(self.best_coral['fitness'])
             return False
 
-
     def visualize_best_coral(self):
         """
-        Visualiza y guarda la arquitectura del mejor coral cuando cambia.
+        Visualize the best coral's Inception architecture if possible,
+        saving it under 'best_coral' inside self.visualization_dir.
         """
+        if self.best_coral is None:
+            return
+
         best_model_params = self.best_coral['solution']
         best_model = InceptionMNISTModel(best_model_params)
+
+        # Subdirectory: <visualizations_dir>/best_coral
+        best_coral_dir = os.path.join(self.visualization_dir, 'best_coral')
+        os.makedirs(best_coral_dir, exist_ok=True)
+
         try:
-            best_coral_dir = os.path.join(self.visualization_dir, 'best_coral')
-            os.makedirs(best_coral_dir, exist_ok=True)
             visualize_inception_module(
                 best_model,
                 self.generation,
@@ -400,87 +418,63 @@ class CoralReefOptimization:
         except Exception as e:
             print(f"Error al visualizar el mejor coral en la generación {self.generation}: {e}")
 
-    def visualize_current_corals(self):
-        """
-        Visualiza y guarda las arquitecturas de los corales actuales (opcional).
-        """
-        flat_reef = [
-            (idx, coral['solution'])
-            for idx, coral in enumerate(
-                [coral for row in self.reef for coral in row if coral is not None]
-            )
-        ]
-        gen_dir = os.path.join(self.visualization_dir, f'generation_{self.generation}')
-        os.makedirs(gen_dir, exist_ok=True)
-        for idx, model_params in flat_reef:
-            model = InceptionMNISTModel(model_params)
-            try:
-                visualize_inception_module(
-                    model,
-                    self.generation,
-                    idx,
-                    gen_dir
-                )
-            except Exception as e:
-                print(f"Error al visualizar el modelo en la generación {self.generation}, coral {idx}: {e}")
-
     def run(self):
         """
-        Ejecuta el algoritmo CRO iterando sobre las generaciones.
+        Core CRO loop:
+         1. Reproduction (broadcast + brooding + budding).
+         2. Settlement of larvae.
+         3. Predation.
+         4. Update best coral, check improvement or early stop.
         """
         for generation in range(self.max_generations):
-            self.generation = generation + 1  # Actualizar el contador de generación
+            self.generation = generation + 1
             print(f"\n=== Generación {self.generation} ===")
 
-            # Obtener lista de corales ocupados en el arrecife
-            corals = [coral for row in self.reef for coral in row if coral is not None]
-
-            # Verificar si hay suficientes corales para reproducirse
+            corals = [c for row in self.reef for c in row if c is not None]
             if len(corals) == 0:
                 print("No hay corales en el arrecife.")
                 continue
 
-            # Mezclar los corales
+            # Shuffle
             random.shuffle(corals)
 
-            # Número de corales para reproducción sexual (broadcast spawning)
+            # Broadcast fraction
             num_broadcast = int(self.Fb * len(corals))
             broadcast_corals = corals[:num_broadcast]
-
-            # Corales no seleccionados para broadcast se usan para brooding
             brooding_corals = corals[num_broadcast:]
 
-            # Reproducción
+            # Reproduction
             new_broadcast_larvae = self.broadcast_spawning(broadcast_corals)
             new_brooding_larvae = self.brooding(brooding_corals)
             new_budding_larvae = self.budding()
 
-            # Añadir nuevas larvas al larvae_pool
+            # Combine all larvae
             self.larvae_pool.extend(new_broadcast_larvae)
             self.larvae_pool.extend(new_brooding_larvae)
             self.larvae_pool.extend(new_budding_larvae)
 
-            # Asentamiento de larvas desde el larvae_pool
+            # Settlement
             self.larvae_settlement()
 
-            # Depredación
+            # Predation
             self.predation()
 
-            # Actualizar el mejor coral y almacenar el fitness
+            # Update best coral and track improvement
             improved = self.update_best_coral()
             if improved:
-                self.no_improve_counter = 0  # Reiniciar el contador si hay mejora
-                # Guardar visualización del mejor coral
+                self.no_improve_counter = 0
+                # Visualize best coral's architecture
                 self.visualize_best_coral()
             else:
-                self.no_improve_counter += 1  # Incrementar el contador si no hay mejora
+                self.no_improve_counter += 1
 
-            # Verificar si se alcanza el máximo de generaciones sin mejora
-            if self.max_no_improve is not None and self.no_improve_counter >= self.max_no_improve:
-                print(f"\nNo se encontró un nuevo mejor coral en {self.max_no_improve} generaciones consecutivas. Finalizando la optimización.")
+            # Early stopping if no improvement
+            if (self.max_no_improve is not None
+                and self.no_improve_counter >= self.max_no_improve):
+                print(f"\nNo se encontró un nuevo mejor coral en {self.max_no_improve} "
+                      f"generaciones consecutivas. Finalizando la optimización.")
                 break
 
-            # Visualizar los corales actuales (opcional)
-            # self.visualize_current_corals()
-            print(f"Mejor fitness en generación {self.generation}: {self.best_coral['fitness']:.2f}")
+            print(f"Mejor fitness hasta generación {self.generation}: {self.best_coral['fitness']:.2f}")
+
         print("\nOptimización completada.")

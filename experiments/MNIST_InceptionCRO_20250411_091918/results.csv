@@ -1,0 +1,2 @@
+experiment,best_fitness,test_fitness,test_accuracy,param_count,fitness_method,alpha,beta,max_generations,num_epochs,batch_size,learning_rate,mutation_rate
+MNIST_InceptionCRO_20250411_091918,0.8841579646157965,0.9691912979491298,98.97,205088,linear,7,1.0,40,100,128,0.001,0.2
