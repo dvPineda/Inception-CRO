@@ -95,20 +95,25 @@ class InceptionModule(nn.Module):
 
 class InceptionMNISTModel(nn.Module):
     """
-    An Inception-based model configured for MNIST (single-channel, 28x28 images).
+    An Inception-based model configured for variable input channels and classes.
     Uses a stem layer, a dynamic InceptionModule, global pooling, and a small MLP head.
     """
 
-    def __init__(self, model_params):
+    def __init__(self, model_params, input_channels=1, num_classes=10):
         """
         Args:
             model_params (dict): Dict with at least 'branches_params', describing 
                                  how the InceptionModule should be built.
+            input_channels (int): Number of input channels (1 for grayscale, 3 for RGB)
+            num_classes (int): Number of output classes
         """
         super(InceptionMNISTModel, self).__init__()
-        # Stem: single Conv2d for input dimension (1 channel for MNIST)
+        self.input_channels = input_channels
+        self.num_classes = num_classes
+        
+        # Stem: Conv2d for input dimension (variable channels)
         self.conv1 = nn.Conv2d(
-            in_channels=1,
+            in_channels=input_channels,
             out_channels=32,
             kernel_size=3,
             padding=1
@@ -130,7 +135,7 @@ class InceptionMNISTModel(nn.Module):
         # Head: global average pooling + linear layers
         self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc1 = nn.Linear(self.output_channels, 128)
-        self.fc2 = nn.Linear(128, 10)  # 10 classes for MNIST
+        self.fc2 = nn.Linear(128, num_classes)  # Variable classes
 
     def _get_output_channels(self, in_channels, branches_params):
         """

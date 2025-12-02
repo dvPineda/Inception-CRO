@@ -167,6 +167,7 @@ data/
 visualizations/**/*
 analysis_visualizations/**/*
 experiments/**/*
+results/
 
 # Archive files
 __archive__/

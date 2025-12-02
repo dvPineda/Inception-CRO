@@ -75,7 +75,8 @@ def load_data(batch_size=128, validation_split=0.1, shuffle_dataset=True, random
     )
 
     print("Dataset MNIST cargado correctamente.")
-    return train_loader, val_loader, test_loader
+    # Return format consistent with load_medmnist: (train_loader, val_loader, test_loader, n_classes, n_channels)
+    return train_loader, val_loader, test_loader, 10, 1
 
 
 def evaluate_model(model,
@@ -131,6 +132,98 @@ def evaluate_model(model,
     )
 
     return fitness, accuracy, avg_loss
+
+
+def load_medmnist(batch_size=128, subset='chestmnist', validation_split=0.1, 
+                  shuffle_dataset=True, random_seed=42):
+    """
+    Load MedMNIST dataset and return loaders for training, validation, and test.
+    
+    Args:
+        batch_size (int): Batch size
+        subset (str): MedMNIST subset (e.g., 'chestmnist', 'pathmnist', etc.)
+        validation_split (float): Fraction of training data for validation
+        shuffle_dataset (bool): Whether to shuffle the dataset
+        random_seed (int): Random seed for reproducibility
+        
+    Returns:
+        tuple: (train_loader, val_loader, test_loader, n_classes, n_channels)
+    """
+    try:
+        import medmnist
+        from medmnist import INFO
+    except ImportError:
+        raise ImportError("MedMNIST not installed. Install with: pip install medmnist")
+    
+    print(f"Loading {subset} dataset with {INFO[subset]['n_channels']} channels...")
+    
+    # Get dataset info
+    info = INFO[subset]
+    task = info['task']
+    n_channels = info['n_channels']
+    n_classes = len(info['label'])
+    
+    # Set up data class
+    DataClass = getattr(medmnist, info['python_class'])
+    
+    # Define transforms
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[.5], std=[.5]) if n_channels == 1 else 
+        transforms.Normalize(mean=[.5, .5, .5], std=[.5, .5, .5])
+    ])
+    
+    # Load datasets
+    train_dataset = DataClass(split='train', transform=transform, download=True)
+    test_dataset = DataClass(split='test', transform=transform, download=True)
+    
+    # Create train/validation split
+    dataset_size = len(train_dataset)
+    train_size = int((1 - validation_split) * dataset_size)
+    val_size = dataset_size - train_size
+    
+    if shuffle_dataset:
+        torch.manual_seed(random_seed)
+        np.random.seed(random_seed)
+    
+    train_dataset, val_dataset = torch.utils.data.random_split(
+        train_dataset, [train_size, val_size]
+    )
+    
+    # Create data loaders
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=shuffle_dataset
+    )
+    val_loader = DataLoader(
+        val_dataset, batch_size=batch_size, shuffle=shuffle_dataset
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=batch_size, shuffle=False
+    )
+    
+    print(f"Successfully loaded MedMNIST subset: '{subset}'")
+    print(f" → Number of classes: {n_classes}")
+    print(f" → Number of channels: {n_channels}")
+    
+    return train_loader, val_loader, test_loader, n_classes, n_channels
+
+
+def determine_task_type(subset_name):
+    """
+    Determine if a MedMNIST subset is multi-class or multi-label.
+    
+    Args:
+        subset_name (str): Name of the MedMNIST subset
+        
+    Returns:
+        str: 'multi-class' or 'multi-label'
+    """
+    try:
+        import medmnist
+        from medmnist import INFO
+        return INFO[subset_name]['task']
+    except (ImportError, KeyError):
+        return 'multi-class'  # Default assumption
 
 
 def save_results_to_csv(results, filename):
