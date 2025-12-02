@@ -1,0 +1,20 @@
+\section{Introduction}
+\label{sec:introduction}
+
+Metaheuristic optimization algorithms have gained significant attention in recent decades due to their effectiveness in solving complex optimization problems where traditional mathematical optimization methods fail or are computationally prohibitive. Among these algorithms, the Coral Reef Optimization (CRO) algorithm, proposed by Salcedo-Sanz et al. \cite{salcedo2014coral}, has shown remarkable performance in various optimization tasks by mimicking the natural behavior of coral reefs.
+
+The CRO algorithm is inspired by the biological processes occurring in coral reefs, where corals reproduce through different mechanisms such as sexual reproduction, asexual reproduction, and larval settlement. These natural processes are abstracted into computational operators that guide the search for optimal solutions in the solution space. The algorithm maintains a population of solutions (corals) arranged in a reef structure, where each coral represents a potential solution to the optimization problem.
+
+Despite its effectiveness, the original CRO algorithm has limitations in terms of exploration and exploitation balance. The reproduction operators in the traditional CRO may not adequately capture the multi-scale nature of optimization problems, potentially leading to premature convergence or slow convergence rates in certain problem domains.
+
+To address these limitations, this paper proposes Inception-CRO, a novel variant of the CRO algorithm that incorporates an inception-based reproduction operator. The inception concept, originally developed for deep neural networks \cite{szegedy2015going}, allows for multi-scale feature extraction and processing. By adapting this concept to the CRO framework, we enable the algorithm to explore the solution space at different scales simultaneously, potentially improving both convergence speed and solution quality.
+
+The main contributions of this paper are:
+\begin{itemize}
+    \item Introduction of the Inception-CRO algorithm with a novel inception-based reproduction operator
+    \item Theoretical analysis of the proposed algorithm's convergence properties
+    \item Comprehensive experimental evaluation on benchmark optimization problems
+    \item Comparison with state-of-the-art metaheuristic algorithms
+\end{itemize}
+
+The remainder of this paper is organized as follows. Section \ref{sec:background} provides background information on coral reef optimization and related work. Section \ref{sec:methodology} presents the proposed Inception-CRO algorithm in detail. Section \ref{sec:experiments} describes the experimental setup and benchmark problems. Section \ref{sec:results} presents and discusses the experimental results. Finally, Section \ref{sec:conclusion} concludes the paper and outlines future research directions.

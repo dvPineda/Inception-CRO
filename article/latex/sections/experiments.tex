@@ -1,0 +1,113 @@
+\section{Experimental Setup}
+\label{sec:experiments}
+
+\subsection{Benchmark Functions}
+
+To evaluate the performance of Inception-CRO, we conducted comprehensive experiments on a diverse set of benchmark optimization problems. The benchmark suite includes:
+
+\subsubsection{Unimodal Functions}
+\begin{itemize}
+    \item \textbf{Sphere Function}: $f_1(x) = \sum_{i=1}^{n} x_i^2$
+    \item \textbf{Rosenbrock Function}: $f_2(x) = \sum_{i=1}^{n-1} [100(x_{i+1} - x_i^2)^2 + (1 - x_i)^2]$
+    \item \textbf{Sum of Squares}: $f_3(x) = \sum_{i=1}^{n} i \cdot x_i^2$
+\end{itemize}
+
+\subsubsection{Multimodal Functions}
+\begin{itemize}
+    \item \textbf{Ackley Function}: $f_4(x) = -20\exp(-0.2\sqrt{\frac{1}{n}\sum_{i=1}^{n}x_i^2}) - \exp(\frac{1}{n}\sum_{i=1}^{n}\cos(2\pi x_i)) + 20 + e$
+    \item \textbf{Rastrigin Function}: $f_5(x) = 10n + \sum_{i=1}^{n}[x_i^2 - 10\cos(2\pi x_i)]$
+    \item \textbf{Griewank Function}: $f_6(x) = \frac{1}{4000}\sum_{i=1}^{n}x_i^2 - \prod_{i=1}^{n}\cos(\frac{x_i}{\sqrt{i}}) + 1$
+\end{itemize}
+
+\subsubsection{Hybrid and Composition Functions}
+\begin{itemize}
+    \item \textbf{CEC 2017 Functions}: A subset of functions from the CEC 2017 benchmark suite
+    \item \textbf{Schwefel Function}: $f_7(x) = 418.9829n - \sum_{i=1}^{n}x_i\sin(\sqrt{|x_i|})$
+\end{itemize}
+
+\subsection{Algorithm Parameters}
+
+The parameter settings for Inception-CRO and baseline algorithms are presented in Table \ref{tab:parameters}. These parameters were chosen based on preliminary experiments and recommendations from the literature.
+
+\begin{table}[htbp]
+\centering
+\caption{Parameter Settings for Inception-CRO and Baseline Algorithms}
+\label{tab:parameters}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Parameter & Inception-CRO & Traditional CRO \\
+\midrule
+Population Size & 50 & 50 \\
+Reef Size & $10 \times 10$ & $10 \times 10$ \\
+Fraction of Occupied Positions & 0.8 & 0.8 \\
+Broadcast Spawning Probability & 0.9 & 0.9 \\
+Brooding Probability & 0.1 & 0.1 \\
+Mutation Probability & 0.1 & 0.1 \\
+Depredation Probability & 0.2 & 0.2 \\
+$w_{f,max}$ & 0.4 & - \\
+$w_{m,max}$ & 0.4 & - \\
+$w_{c,max}$ & 0.6 & - \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Comparison Algorithms}
+
+We compare Inception-CRO against several state-of-the-art metaheuristic algorithms:
+
+\begin{itemize}
+    \item \textbf{Traditional CRO}: The original Coral Reef Optimization algorithm
+    \item \textbf{Genetic Algorithm (GA)}: Classical evolutionary algorithm
+    \item \textbf{Particle Swarm Optimization (PSO)}: Swarm intelligence algorithm
+    \item \textbf{Differential Evolution (DE)}: Evolutionary algorithm with differential mutation
+    \item \textbf{Artificial Bee Colony (ABC)}: Swarm intelligence algorithm inspired by bee behavior
+    \item \textbf{Grey Wolf Optimizer (GWO)}: Recent metaheuristic based on wolf pack behavior
+\end{itemize}
+
+\subsection{Experimental Protocol}
+
+\subsubsection{Statistical Analysis}
+
+Each algorithm was run 30 times independently for each benchmark function to ensure statistical significance. The following metrics were recorded:
+
+\begin{itemize}
+    \item \textbf{Best fitness}: The best solution found across all runs
+    \item \textbf{Mean fitness}: The average fitness across all runs
+    \item \textbf{Standard deviation}: Measure of solution consistency
+    \item \textbf{Success rate}: Percentage of runs achieving the target accuracy
+    \item \textbf{Convergence speed}: Number of function evaluations to reach target accuracy
+\end{itemize}
+
+\subsubsection{Performance Measures}
+
+We employ several performance measures to comprehensively evaluate the algorithms:
+
+\begin{itemize}
+    \item \textbf{Solution Quality}: Final best fitness values obtained
+    \item \textbf{Convergence Rate}: Speed of convergence to optimal or near-optimal solutions
+    \item \textbf{Robustness}: Consistency of performance across multiple runs
+    \item \textbf{Scalability}: Performance variation with problem dimension
+\end{itemize}
+
+\subsection{Computational Environment}
+
+All experiments were conducted on a computing cluster with the following specifications:
+\begin{itemize}
+    \item \textbf{CPU}: Intel Xeon E5-2680 v4 @ 2.40GHz
+    \item \textbf{Memory}: 64 GB RAM
+    \item \textbf{Operating System}: Ubuntu 20.04 LTS
+    \item \textbf{Programming Language}: Python 3.8
+    \item \textbf{Libraries}: NumPy 1.21.0, SciPy 1.7.0, Matplotlib 3.4.2
+\end{itemize}
+
+\subsection{Statistical Tests}
+
+To ensure the reliability of our conclusions, we applied appropriate statistical tests:
+
+\begin{itemize}
+    \item \textbf{Wilcoxon Signed-Rank Test}: For pairwise comparisons between algorithms
+    \item \textbf{Kruskal-Wallis Test}: For comparing multiple algorithms simultaneously
+    \item \textbf{Bonferroni Correction}: To address multiple comparison issues
+\end{itemize}
+
+The significance level was set to $\alpha = 0.05$ for all statistical tests.

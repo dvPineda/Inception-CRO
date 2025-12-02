@@ -1,0 +1,10 @@
+# Figures Directory
+
+This directory should contain all figures used in the article:
+
+- convergence_comparison.pdf - Convergence curves comparing algorithms
+- scalability_analysis.pdf - Performance vs. problem dimension
+- parameter_sensitivity.pdf - Parameter sensitivity analysis
+
+Generate these figures from your experimental results and place them here.
+The figures should be in PDF format for best quality in the compiled document.

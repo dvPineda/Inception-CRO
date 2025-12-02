@@ -1,0 +1,48 @@
+\section{Background and Related Work}
+\label{sec:background}
+
+\subsection{Coral Reef Optimization Algorithm}
+
+The Coral Reef Optimization (CRO) algorithm was first introduced by Salcedo-Sanz et al. \cite{salcedo2014coral} as a bio-inspired metaheuristic algorithm that mimics the natural behavior of coral reefs. The algorithm is based on the reproduction and growth processes observed in coral reefs, where corals reproduce through various mechanisms including sexual reproduction, asexual reproduction, and larval settlement.
+
+In the CRO framework, the coral reef is represented as a two-dimensional grid where each cell can either be empty or occupied by a coral. Each coral represents a potential solution to the optimization problem, and the population evolves through several operators:
+
+\begin{itemize}
+    \item \textbf{Broadcast spawning}: Corals reproduce sexually by releasing gametes into the water column
+    \item \textbf{Brooding}: Corals reproduce asexually by producing larvae internally
+    \item \textbf{Larval settlement}: New larvae settle on empty spaces in the reef
+    \item \textbf{Predation}: Weak corals are removed from the reef to maintain population balance
+\end{itemize}
+
+The algorithm maintains a balance between exploration and exploitation through these operators, with broadcast spawning providing global exploration, brooding enabling local exploitation, and larval settlement introducing random diversification.
+
+\subsection{Inception Architecture}
+
+The inception architecture, originally proposed by Szegedy et al. \cite{szegedy2015going} for deep neural networks, is designed to capture features at multiple scales simultaneously. The key idea is to use convolution filters of different sizes (e.g., 1×1, 3×3, 5×5) in parallel and concatenate their outputs, allowing the network to process information at different granularities.
+
+The inception module has proven highly effective in various computer vision tasks due to its ability to:
+\begin{itemize}
+    \item Capture multi-scale features efficiently
+    \item Reduce computational complexity through dimensionality reduction
+    \item Improve gradient flow during training
+    \item Enhance the representational power of the network
+\end{itemize}
+
+\subsection{Related Work}
+
+Several variants of the CRO algorithm have been proposed to address its limitations and improve performance in specific domains. These include:
+
+\begin{itemize}
+    \item \textbf{Multi-objective CRO}: Extensions for handling multiple objectives simultaneously
+    \item \textbf{Hybrid CRO}: Combinations with other metaheuristic algorithms
+    \item \textbf{Adaptive CRO}: Variants with parameter adaptation mechanisms
+    \item \textbf{Discrete CRO}: Modifications for discrete optimization problems
+\end{itemize}
+
+However, to the best of our knowledge, no previous work has explored the integration of inception-based operators into the CRO framework, which represents a novel contribution of this paper.
+
+\subsection{Motivation}
+
+The motivation for developing Inception-CRO stems from the observation that many optimization problems exhibit multi-scale characteristics, where the optimal solution depends on both fine-grained local features and coarse-grained global patterns. Traditional CRO operators may not adequately capture these multi-scale dependencies, potentially limiting the algorithm's performance.
+
+By incorporating inception-based operators, we aim to enable the algorithm to simultaneously explore and exploit the solution space at different scales, leading to improved convergence behavior and better solution quality across a wide range of optimization problems.

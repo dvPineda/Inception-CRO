@@ -1,0 +1,5 @@
+# Tables Directory
+
+This directory can contain separate table files if you prefer to keep large tables in separate .tex files.
+
+Currently, all tables are embedded directly in the section files, but you can move them here if needed and include them using \input{tables/table_name.tex}

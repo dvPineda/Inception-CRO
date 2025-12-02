@@ -1,0 +1,86 @@
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Inception-CRO Algorithm Overview}
+
+The proposed Inception-CRO algorithm extends the traditional CRO framework by incorporating an inception-based reproduction operator that enables multi-scale exploration and exploitation of the solution space. The algorithm maintains the basic structure of CRO while introducing novel operators inspired by the inception architecture.
+
+\subsection{Inception-Based Reproduction Operator}
+
+The core innovation of Inception-CRO lies in its inception-based reproduction operator, which replaces the traditional broadcast spawning mechanism in the original CRO algorithm. This operator performs reproduction at multiple scales simultaneously, analogous to how inception modules in neural networks process features at different granularities.
+
+\subsubsection{Multi-Scale Crossover}
+
+The inception-based operator employs three different crossover mechanisms operating at different scales:
+
+\begin{itemize}
+    \item \textbf{Fine-scale crossover}: Operates on individual variables or small groups of variables
+    \item \textbf{Medium-scale crossover}: Operates on moderate-sized segments of the solution vector
+    \item \textbf{Coarse-scale crossover}: Operates on large segments or entire blocks of the solution
+\end{itemize}
+
+Algorithm \ref{alg:inception_crossover} presents the detailed procedure for the inception-based reproduction operator.
+
+\begin{algorithm}[htbp]
+\caption{Inception-Based Reproduction Operator}
+\label{alg:inception_crossover}
+\begin{algorithmic}[1]
+\REQUIRE Parent corals $C_1$ and $C_2$, scale weights $w_f$, $w_m$, $w_c$
+\ENSURE Offspring coral $O$
+\STATE Initialize offspring $O$ with zeros
+\STATE $O_f \leftarrow$ FineScaleCrossover($C_1$, $C_2$)
+\STATE $O_m \leftarrow$ MediumScaleCrossover($C_1$, $C_2$)
+\STATE $O_c \leftarrow$ CoarseScaleCrossover($C_1$, $C_2$)
+\STATE $O \leftarrow w_f \cdot O_f + w_m \cdot O_m + w_c \cdot O_c$
+\STATE Normalize $O$ to ensure feasibility
+\RETURN $O$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Adaptive Scale Weights}
+
+The weights for combining different scales are adapted dynamically based on the current state of the optimization process. Early in the search, coarse-scale operations are emphasized for exploration, while fine-scale operations gain importance as the algorithm converges.
+
+\begin{equation}
+w_f(t) = \frac{t}{T} \cdot w_{f,max}
+\end{equation}
+
+\begin{equation}
+w_m(t) = \sin\left(\frac{\pi t}{T}\right) \cdot w_{m,max}
+\end{equation}
+
+\begin{equation}
+w_c(t) = \left(1 - \frac{t}{T}\right) \cdot w_{c,max}
+\end{equation}
+
+where $t$ is the current iteration, $T$ is the maximum number of iterations, and $w_{f,max}$, $w_{m,max}$, $w_{c,max}$ are the maximum weights for each scale.
+
+\subsection{Enhanced Brooding Operator}
+
+The traditional brooding operator is enhanced with a multi-scale mutation mechanism that applies different perturbation strategies at various scales:
+
+\begin{itemize}
+    \item \textbf{Fine-scale mutation}: Small Gaussian perturbations
+    \item \textbf{Medium-scale mutation}: Moderate uniform perturbations
+    \item \textbf{Coarse-scale mutation}: Large-scale restructuring operations
+\end{itemize}
+
+\subsection{Adaptive Reef Management}
+
+Inception-CRO incorporates an adaptive reef management mechanism that adjusts the reef size and coral density based on the diversity and quality of the current population. This helps maintain an optimal balance between exploration and exploitation throughout the optimization process.
+
+\subsection{Algorithm Complexity}
+
+The time complexity of Inception-CRO is $O(N \cdot D \cdot G)$, where $N$ is the population size, $D$ is the problem dimension, and $G$ is the number of generations. This is comparable to the original CRO algorithm, with only a constant factor increase due to the multi-scale operations.
+
+\subsection{Convergence Analysis}
+
+The convergence properties of Inception-CRO can be analyzed using the framework of Markov chains. The algorithm maintains the convergence guarantees of the original CRO while potentially improving the convergence rate through its multi-scale exploration capabilities.
+
+\begin{theorem}
+Under mild conditions on the objective function and parameter settings, Inception-CRO converges to the global optimum with probability 1.
+\end{theorem}
+
+\begin{proof}
+The proof follows similar arguments to those used for the original CRO algorithm, with additional considerations for the multi-scale operators. The key insight is that the inception-based operator maintains the ergodicity properties required for convergence while enhancing the search efficiency.
+\end{proof}
