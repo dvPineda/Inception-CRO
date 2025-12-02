@@ -1,0 +1,251 @@
+#!/usr/bin/env python3
+# inception_cro - Unified command interface for Inception-CRO
+
+"""
+Inception-CRO Command Line Interface
+
+This unified interface provides access to all major functionality:
+- Training Inception-CRO models
+- Running comparisons with baseline models
+- Research-level evaluation
+- Quick demonstrations
+"""
+
+import sys
+import argparse
+import subprocess
+from pathlib import Path
+
+# Get the project root directory
+PROJECT_ROOT = Path(__file__).parent
+MEDMNIST_SUBSETS = [
+    "chestmnist",
+    "pathmnist",
+    "dermamnist",
+    "octmnist",
+    "pneumoniamnist",
+    "retinamnist",
+    "breastmnist",
+    "bloodmnist",
+    "tissuemnist",
+    "organamnist",
+    "organcmnist",
+    "organsmnist",
+]
+
+def run_training(args):
+    """Run Inception-CRO training."""
+    cmd = [sys.executable, str(PROJECT_ROOT / "main.py")]
+    
+    # Forward all training arguments
+    training_args = [
+        'dataset_name', 'medmnist_subset', 'batch_size',
+        'learning_rate', 'num_epochs', 'patience', 'reef_size',
+        'max_generations', 'mutation_rate',
+        'fitness_method', 'fitness_alpha', 'fitness_beta', 'seed'
+    ]
+    
+    for arg in training_args:
+        value = getattr(args, arg, None)
+        if value is not None:
+            cmd.extend([f"--{arg.replace('_', '-')}", str(value)])
+    
+    # Boolean flags
+    if hasattr(args, 'no_shuffle_dataset') and args.no_shuffle_dataset:
+        cmd.append("--no-shuffle-dataset")
+    if getattr(args, 'save_model', False):
+        cmd.append("--save-model")
+    
+    print(f"Running: {' '.join(cmd)}")
+    return subprocess.run(cmd)
+
+def run_demo(args):
+    """Run demonstration."""
+    if args.capabilities:
+        cmd = [sys.executable, str(PROJECT_ROOT / "scripts" / "demo_research_evaluation.py"), "--capabilities"]
+    else:
+        cmd = [sys.executable, str(PROJECT_ROOT / "scripts" / "demo_research_evaluation.py")]
+    
+    print(f"Running: {' '.join(cmd)}")
+    return subprocess.run(cmd)
+
+def run_comparison(args):
+    """Run model comparison."""
+    if args.legacy:
+        # Use the old comparison script
+        cmd = [sys.executable, str(PROJECT_ROOT / "compare_models.py")]
+        
+        # Add arguments
+        if args.datasets:
+            if len(args.datasets) == 1 and args.datasets[0] in ['mnist', 'medmnist']:
+                cmd.extend(["--dataset-name", args.datasets[0]])
+        
+        if args.models:
+            cmd.extend(["--models"] + args.models)
+        
+        if args.num_epochs:
+            cmd.extend(["--num-epochs", str(args.num_epochs)])
+        
+        if args.max_generations:
+            cmd.extend(["--max-generations", str(args.max_generations)])
+            
+    else:
+        # Use the new research evaluation framework
+        cmd = [sys.executable, str(PROJECT_ROOT / "scripts" / "run_comprehensive_experiments.py")]
+        
+        if args.mode:
+            cmd.extend(["--mode", args.mode])
+        
+        if args.output_dir:
+            cmd.extend(["--output-dir", args.output_dir])
+        
+        if args.no_extended_training:
+            cmd.append("--no-extended-training")
+    
+    print(f"Running: {' '.join(cmd)}")
+    return subprocess.run(cmd)
+
+def run_analysis(args):
+    """Run experiment analysis."""
+    cmd = [sys.executable, str(PROJECT_ROOT / "experiment_analyzer.py")]
+    
+    if args.list_only:
+        cmd.append("--list-only")
+    
+    if args.days_back:
+        cmd.extend(["--days-back", str(args.days_back)])
+    
+    if args.output_dir:
+        cmd.extend(["--output-dir", args.output_dir])
+    
+    print(f"Running: {' '.join(cmd)}")
+    return subprocess.run(cmd)
+
+def run_tests(args):
+    """Run test suite."""
+    cmd = [sys.executable, str(PROJECT_ROOT / "run_tests.py")]
+    
+    if args.quick:
+        cmd.append("--quick")
+    
+    print(f"Running: {' '.join(cmd)}")
+    return subprocess.run(cmd)
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Inception-CRO: Optimizing Inception modules with Coral Reef Optimization",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  %(prog)s train --dataset-name mnist --max-generations 20
+  %(prog)s demo
+  %(prog)s compare --mode quick
+  %(prog)s compare --mode full --output-dir my_results
+  %(prog)s analyze --days-back 7
+  %(prog)s test
+
+For more help on specific commands:
+  %(prog)s train --help
+  %(prog)s compare --help
+"""
+    )
+    
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    
+    # Training command
+    train_parser = subparsers.add_parser('train', help='Train Inception-CRO model')
+    train_parser.add_argument('--dataset-name', choices=['mnist', 'medmnist'] + MEDMNIST_SUBSETS, default='medmnist',
+                             help='Dataset to use')
+    train_parser.add_argument('--medmnist-subset', default='chestmnist', choices=MEDMNIST_SUBSETS,
+                             help='MedMNIST subset (when using medmnist)')
+    train_parser.add_argument('--batch-size', type=int, default=128,
+                             help='Batch size')
+    train_parser.add_argument('--learning-rate', type=float, default=0.001,
+                             help='Learning rate')
+    train_parser.add_argument('--num-epochs', type=int, default=10,
+                             help='Number of training epochs')
+    train_parser.add_argument('--reef-size', default='(2,2)',
+                             help='Reef size as tuple, e.g., "(3,3)"')
+    train_parser.add_argument('--max-generations', type=int, default=10,
+                             help='Maximum CRO generations')
+    train_parser.add_argument('--mutation-rate', type=float, default=0.2,
+                             help='Mutation rate')
+    train_parser.add_argument('--fitness-method', choices=['linear', 'poly'], default='linear',
+                             help='Fitness computation method')
+    train_parser.add_argument('--fitness-alpha', type=int, default=7,
+                             help='Alpha parameter for fitness')
+    train_parser.add_argument('--fitness-beta', type=float, default=1.0,
+                             help='Beta parameter for fitness')
+    train_parser.add_argument('--patience', type=int, default=40,
+                             help='Early stopping patience for full training')
+    train_parser.add_argument('--seed', type=int, default=42,
+                             help='Random seed')
+    train_parser.add_argument('--no-shuffle-dataset', action='store_true',
+                             help='Disable dataset shuffling')
+    train_parser.add_argument('--save-model', action='store_true',
+                             help='Persist best model checkpoint')
+    
+    # Demo command
+    demo_parser = subparsers.add_parser('demo', help='Run demonstration')
+    demo_parser.add_argument('--capabilities', action='store_true',
+                            help='Show capabilities without running')
+    
+    # Comparison command
+    compare_parser = subparsers.add_parser('compare', help='Compare models')
+    compare_parser.add_argument('--mode', choices=['quick', 'full', 'ablation', 'scalability', 'all'],
+                               default='quick', help='Comparison mode')
+    compare_parser.add_argument('--datasets', nargs='+',
+                               help='Datasets to evaluate on')
+    compare_parser.add_argument('--models', nargs='+',
+                               help='Models to compare')
+    compare_parser.add_argument('--output-dir', default='results/comparison',
+                               help='Output directory')
+    compare_parser.add_argument('--no-extended-training', action='store_true',
+                               help='Disable extended training')
+    compare_parser.add_argument('--legacy', action='store_true',
+                               help='Use legacy comparison script')
+    compare_parser.add_argument('--num-epochs', type=int,
+                               help='Number of training epochs (legacy mode)')
+    compare_parser.add_argument('--max-generations', type=int,
+                               help='Maximum generations (legacy mode)')
+    
+    # Analysis command
+    analyze_parser = subparsers.add_parser('analyze', help='Analyze experiments')
+    analyze_parser.add_argument('--list-only', action='store_true',
+                               help='Only list experiments')
+    analyze_parser.add_argument('--days-back', type=int,
+                               help='Analyze last N days')
+    analyze_parser.add_argument('--output-dir',
+                               help='Output directory')
+    
+    # Test command
+    test_parser = subparsers.add_parser('test', help='Run tests')
+    test_parser.add_argument('--quick', action='store_true',
+                            help='Run quick tests only')
+    
+    args = parser.parse_args()
+    
+    if not args.command:
+        parser.print_help()
+        print("\n🚀 Quick start:")
+        print("  inception_cro demo                  # Run demonstration")
+        print("  inception_cro train                 # Train with defaults")
+        print("  inception_cro compare --mode quick  # Quick comparison")
+        return 1
+    
+    # Dispatch to appropriate function
+    if args.command == 'train':
+        return run_training(args).returncode
+    elif args.command == 'demo':
+        return run_demo(args).returncode
+    elif args.command == 'compare':
+        return run_comparison(args).returncode
+    elif args.command == 'analyze':
+        return run_analysis(args).returncode
+    elif args.command == 'test':
+        return run_tests(args).returncode
+    else:
+        parser.error(f"Unknown command: {args.command}")
+
+if __name__ == "__main__":
+    sys.exit(main())
